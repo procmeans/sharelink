@@ -40,7 +40,7 @@ func TestFetchPlayURL_Success(t *testing.T) {
 	}
 }
 
-func TestFetchPlayURL_NoRenderData(t *testing.T) {
+func TestFetchPlayURL_NoRouterData(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, "<html><body>nothing here</body></html>")
 	}))
@@ -54,9 +54,8 @@ func TestFetchPlayURL_NoRenderData(t *testing.T) {
 
 func TestFetchPlayURL_EmptyURLList(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// RENDER_DATA present but url_list empty
-		const empty = `%7B%22app%22%3A%7B%22aweme_detail%22%3A%7B%22video%22%3A%7B%22play_addr%22%3A%7B%22url_list%22%3A%5B%5D%7D%7D%7D%7D%7D`
-		_, _ = io.WriteString(w, `<script id="RENDER_DATA" type="application/json">`+empty+`</script>`)
+		const payload = `<script>window._ROUTER_DATA = {"loaderData":{"video_(id)/page":{"videoInfoRes":{"item_list":[{"video":{"play_addr":{"url_list":[]}}}]}}}};</script>`
+		_, _ = io.WriteString(w, payload)
 	}))
 	defer srv.Close()
 

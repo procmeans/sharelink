@@ -1,37 +1,42 @@
 package douyin
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"regexp"
 
 	"github.com/procmeans/sharelink/internal/httpclient"
 )
 
 const shareBaseURL = "https://www.iesdouyin.com"
 
-var renderDataRe = regexp.MustCompile(`<script id="RENDER_DATA"[^>]*>([^<]+)</script>`)
+// routerDataPrefix is the literal byte sequence preceding the JSON object
+// that the iesdouyin share page inlines for SSR'd video metadata.
+var routerDataPrefix = []byte("window._ROUTER_DATA = ")
 
-// renderData captures the minimal subset of fields we need from the
-// share-page RENDER_DATA payload. Extra fields are ignored.
-type renderData struct {
-	App struct {
-		AwemeDetail struct {
-			Video struct {
-				PlayAddr struct {
-					URLList []string `json:"url_list"`
-				} `json:"play_addr"`
-			} `json:"video"`
-		} `json:"aweme_detail"`
-	} `json:"app"`
+// routerData captures the minimal subset of fields we need from the
+// share-page _ROUTER_DATA payload. Extra fields are ignored.
+type routerData struct {
+	LoaderData struct {
+		Page struct {
+			VideoInfoRes struct {
+				ItemList []struct {
+					Video struct {
+						PlayAddr struct {
+							URLList []string `json:"url_list"`
+						} `json:"play_addr"`
+					} `json:"video"`
+				} `json:"item_list"`
+			} `json:"videoInfoRes"`
+		} `json:"video_(id)/page"`
+	} `json:"loaderData"`
 }
 
 // FetchPlayURL fetches the share page for videoID and returns the first
-// (still-watermarked) play URL from RENDER_DATA. Use StripWatermark on the
-// result to remove the watermark.
+// (still-watermarked) play URL from window._ROUTER_DATA. Use StripWatermark
+// on the result to remove the watermark.
 func FetchPlayURL(client *http.Client, videoID string) (string, error) {
 	return fetchPlayURLFromBase(client, shareBaseURL, videoID)
 }
@@ -60,22 +65,23 @@ func fetchPlayURLFromBase(client *http.Client, baseURL, videoID string) (string,
 		return "", fmt.Errorf("%w: read body: %v", ErrUpstream, err)
 	}
 
-	m := renderDataRe.FindSubmatch(body)
-	if len(m) < 2 {
-		return "", fmt.Errorf("%w: RENDER_DATA script not found", ErrNoPlayURL)
+	idx := bytes.Index(body, routerDataPrefix)
+	if idx < 0 {
+		return "", fmt.Errorf("%w: _ROUTER_DATA marker not found", ErrNoPlayURL)
+	}
+	jsonStart := idx + len(routerDataPrefix)
+
+	var rd routerData
+	dec := json.NewDecoder(bytes.NewReader(body[jsonStart:]))
+	if err := dec.Decode(&rd); err != nil {
+		return "", fmt.Errorf("%w: decode _ROUTER_DATA: %v", ErrNoPlayURL, err)
 	}
 
-	decoded, err := url.QueryUnescape(string(m[1]))
-	if err != nil {
-		return "", fmt.Errorf("%w: decode RENDER_DATA: %v", ErrNoPlayURL, err)
+	items := rd.LoaderData.Page.VideoInfoRes.ItemList
+	if len(items) == 0 {
+		return "", fmt.Errorf("%w: empty item_list", ErrNoPlayURL)
 	}
-
-	var rd renderData
-	if err := json.Unmarshal([]byte(decoded), &rd); err != nil {
-		return "", fmt.Errorf("%w: unmarshal RENDER_DATA: %v", ErrNoPlayURL, err)
-	}
-
-	urls := rd.App.AwemeDetail.Video.PlayAddr.URLList
+	urls := items[0].Video.PlayAddr.URLList
 	if len(urls) == 0 || urls[0] == "" {
 		return "", fmt.Errorf("%w: empty url_list", ErrNoPlayURL)
 	}
