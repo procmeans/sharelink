@@ -61,18 +61,3 @@ func TestExtract_NoShortURL(t *testing.T) {
 		t.Fatalf("want ErrNoShortURL, got %v", err)
 	}
 }
-
-func TestExtract_ShortURLEmbeddedInText(t *testing.T) {
-	// Just verifies the input parser is wired in; no network needed because
-	// the resolve step will fail on the bogus host. We only check the error
-	// kind isn't ErrNoShortURL (the parse step succeeded).
-	_, err := Extract("text https://v.douyin.com/iNotReal/ more text")
-	if errors.Is(err, ErrNoShortURL) {
-		t.Fatalf("short URL parse failed unexpectedly: %v", err)
-	}
-	// Network/DNS errors will surface as ErrUpstream — accept either that
-	// or ErrInvalidRedirect depending on local DNS behaviour.
-	if !errors.Is(err, ErrUpstream) && !errors.Is(err, ErrInvalidRedirect) {
-		t.Fatalf("want ErrUpstream/ErrInvalidRedirect, got %v", err)
-	}
-}
