@@ -13,7 +13,7 @@ import (
 
 // ExtractFunc is the dependency injected into the handler so tests can stub
 // the extraction logic without touching the real implementation.
-type ExtractFunc func(input string) (string, error)
+type ExtractFunc func(input string) (douyin.Result, error)
 
 type parseRequest struct {
 	URL string `json:"url"`
@@ -61,16 +61,16 @@ func parseHandler(extract ExtractFunc) http.HandlerFunc {
 			return
 		}
 
-		playURL, err := extract(req.URL)
+		res, err := extract(req.URL)
 		if err != nil {
 			status, code := mapError(err)
 			writeError(w, status, code, err.Error())
-			logRequest(req.URL, "", "error", code, time.Since(start))
+			logRequest(req.URL, res.VideoID, "", "error", code, time.Since(start))
 			return
 		}
 
-		writeJSON(w, http.StatusOK, successResponse{Code: 0, PlayURL: playURL})
-		logRequest(req.URL, playURL, "ok", 0, time.Since(start))
+		writeJSON(w, http.StatusOK, successResponse{Code: 0, PlayURL: res.PlayURL})
+		logRequest(req.URL, res.VideoID, res.PlayURL, "ok", 0, time.Since(start))
 	}
 }
 
@@ -99,13 +99,14 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-func logRequest(input, playURL, result string, code int, dur time.Duration) {
+func logRequest(input, videoID, playURL, result string, code int, dur time.Duration) {
 	in := input
 	if len(in) > 100 {
 		in = in[:100]
 	}
 	slog.Info("parse",
 		"input", in,
+		"video_id", videoID,
 		"play_url", playURL,
 		"result", result,
 		"code", code,

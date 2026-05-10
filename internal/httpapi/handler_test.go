@@ -162,12 +162,12 @@ func TestHealthz(t *testing.T) {
 
 // helpers
 
-func stubExtract(url string, err error) ExtractFunc {
-	return func(input string) (string, error) {
+func stubExtract(playURL string, err error) ExtractFunc {
+	return func(input string) (douyin.Result, error) {
 		if err != nil {
-			return "", err
+			return douyin.Result{}, err
 		}
-		return url, nil
+		return douyin.Result{PlayURL: playURL}, nil
 	}
 }
 

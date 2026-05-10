@@ -45,13 +45,16 @@ func TestExtract_EndToEnd(t *testing.T) {
 		ShortURL:     srv.URL + "/short/abc",
 		ShareBaseURL: srv.URL,
 	}
-	got, err := ExtractWithConfig(cfg)
+	res, err := ExtractWithConfig(cfg)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
 	want := "https://aweme.snssdk.com/aweme/v1/play/?video_id=v0200fg10000abc&line=0"
-	if got != want {
-		t.Fatalf("want %q, got %q", want, got)
+	if res.PlayURL != want {
+		t.Fatalf("want %q, got %q", want, res.PlayURL)
+	}
+	if res.VideoID != "7234567890123456789" {
+		t.Fatalf("want video id 7234567890123456789, got %q", res.VideoID)
 	}
 }
 
