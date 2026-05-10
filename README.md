@@ -39,6 +39,7 @@ Error response:
 | 1001 | 400  | bad request body |
 | 1002 | 422  | no v.douyin.com short URL in input |
 | 1003 | 422  | redirect target had no video id |
+| 1004 | 405  | method not allowed |
 | 2001 | 502  | upstream request failed |
 | 2002 | 502  | RENDER_DATA missing or play URL empty |
 

@@ -132,6 +132,22 @@ func TestParseHandler_Success(t *testing.T) {
 	}
 }
 
+func TestParseHandler_MethodNotAllowed(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/parse", nil)
+
+	NewHandler(stubExtract("", nil)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("want 405, got %d", rec.Code)
+	}
+	var got map[string]any
+	mustDecode(t, rec.Body, &got)
+	if int(got["code"].(float64)) != 1004 {
+		t.Fatalf("want code 1004, got %v", got["code"])
+	}
+}
+
 func TestHealthz(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)

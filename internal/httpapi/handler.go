@@ -47,7 +47,7 @@ func parseHandler(extract ExtractFunc) http.HandlerFunc {
 		start := time.Now()
 
 		if r.Method != http.MethodPost {
-			writeError(w, http.StatusMethodNotAllowed, 1001, "method not allowed")
+			writeError(w, http.StatusMethodNotAllowed, 1004, "method not allowed")
 			return
 		}
 
