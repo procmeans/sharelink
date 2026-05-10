@@ -17,7 +17,7 @@ import (
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
 
-	ttwid := douyin.NewTTWidManager(httpclient.NewFollowing())
+	ttwid := douyin.NewTTWidManager(httpclient.NewNoRedirect())
 	if err := ttwid.Refresh(); err != nil {
 		slog.Error("ttwid refresh failed at startup", "err", err.Error())
 		os.Exit(1)

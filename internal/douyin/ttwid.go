@@ -53,7 +53,7 @@ func (m *TTWidManager) Refresh() error {
 	url := m.url
 	m.mu.RUnlock()
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodHead, url, nil)
 	if err != nil {
 		return fmt.Errorf("%w: build ttwid request: %v", ErrUpstream, err)
 	}
@@ -65,7 +65,7 @@ func (m *TTWidManager) Refresh() error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		return fmt.Errorf("%w: ttwid status %d", ErrUpstream, resp.StatusCode)
 	}
 

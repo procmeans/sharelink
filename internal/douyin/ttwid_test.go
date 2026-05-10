@@ -80,3 +80,21 @@ func TestTTWid_RefreshFailureDoesNotClearExistingCookie(t *testing.T) {
 		t.Fatalf("expected previous cookie preserved, got %q", m.Cookie())
 	}
 }
+
+func TestTTWid_Refresh302WithCookie(t *testing.T) {
+	// Reproduces the douyin.com behavior: cookie set on a 302 response.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{Name: "ttwid", Value: "from302"})
+		w.Header().Set("Location", "/home")
+		w.WriteHeader(http.StatusFound)
+	}))
+	defer srv.Close()
+
+	m := newTTWidManagerWithURL(httpclient.NewNoRedirect(), srv.URL)
+	if err := m.Refresh(); err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if m.Cookie() != "from302" {
+		t.Fatalf("want from302, got %q", m.Cookie())
+	}
+}
