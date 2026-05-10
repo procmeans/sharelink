@@ -42,6 +42,11 @@ func TestExtractShortURL(t *testing.T) {
 			input:   "this is just text https://example.com/foo",
 			wantErr: ErrNoShortURL,
 		},
+		{
+			name:  "slug with hyphen and underscore",
+			input: "see https://v.douyin.com/abc-123_xyz/ here",
+			want:  "https://v.douyin.com/abc-123_xyz/",
+		},
 	}
 
 	for _, tc := range cases {

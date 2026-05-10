@@ -2,7 +2,7 @@ package douyin
 
 import "regexp"
 
-var shortURLRe = regexp.MustCompile(`https?://v\.douyin\.com/[A-Za-z0-9]+/?`)
+var shortURLRe = regexp.MustCompile(`https?://v\.douyin\.com/[A-Za-z0-9_-]+/?`)
 
 // ExtractShortURL finds the first v.douyin.com short URL in input.
 // Returns ErrNoShortURL if none is present.
