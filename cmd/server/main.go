@@ -8,19 +8,26 @@ import (
 	"os"
 	"time"
 
+	"github.com/procmeans/sharelink/internal/cache"
 	"github.com/procmeans/sharelink/internal/douyin"
 	"github.com/procmeans/sharelink/internal/httpapi"
+	"github.com/procmeans/sharelink/internal/httpclient"
 )
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
+
+	// Temporary placeholder wiring; real ttwid + cache assembly is Task 9.
+	ttwid := douyin.NewTTWidManager(httpclient.NewFollowing())
+	c := cache.New(1000, 30*time.Minute)
+	svc := douyin.NewService(ttwid, c)
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	handler := httpapi.NewHandler(douyin.Extract)
+	handler := httpapi.NewHandler(svc.Extract)
 
 	srv := &http.Server{
 		Addr:         ":" + port,
