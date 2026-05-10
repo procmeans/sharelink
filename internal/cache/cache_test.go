@@ -87,3 +87,27 @@ func TestCache_ZeroCapacity(t *testing.T) {
 		t.Fatal("zero-capacity cache must hold nothing")
 	}
 }
+
+func TestCache_ConcurrentReadsAndWrites(t *testing.T) {
+	c := New(100, time.Minute)
+	const goroutines = 16
+	const iterations = 1000
+
+	done := make(chan struct{}, goroutines)
+	for g := 0; g < goroutines; g++ {
+		go func(id int) {
+			defer func() { done <- struct{}{} }()
+			for i := 0; i < iterations; i++ {
+				key := string(rune('a' + (i+id)%26))
+				if i%2 == 0 {
+					c.Set(key, key)
+				} else {
+					_, _ = c.Get(key)
+				}
+			}
+		}(g)
+	}
+	for g := 0; g < goroutines; g++ {
+		<-done
+	}
+}
