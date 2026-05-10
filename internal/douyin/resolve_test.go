@@ -17,7 +17,7 @@ func TestResolveVideoID(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		got, err := ResolveVideoID(httpclient.NewNoRedirect(), srv.URL)
+		got, err := ResolveVideoID(httpclient.NewNoRedirect(), "", srv.URL)
 		if err != nil {
 			t.Fatalf("unexpected err: %v", err)
 		}
@@ -33,7 +33,7 @@ func TestResolveVideoID(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		got, err := ResolveVideoID(httpclient.NewNoRedirect(), srv.URL)
+		got, err := ResolveVideoID(httpclient.NewNoRedirect(), "", srv.URL)
 		if err != nil {
 			t.Fatalf("unexpected err: %v", err)
 		}
@@ -49,7 +49,7 @@ func TestResolveVideoID(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		_, err := ResolveVideoID(httpclient.NewNoRedirect(), srv.URL)
+		_, err := ResolveVideoID(httpclient.NewNoRedirect(), "", srv.URL)
 		if !errors.Is(err, ErrInvalidRedirect) {
 			t.Fatalf("want ErrInvalidRedirect, got %v", err)
 		}
@@ -61,9 +61,43 @@ func TestResolveVideoID(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		_, err := ResolveVideoID(httpclient.NewNoRedirect(), srv.URL)
+		_, err := ResolveVideoID(httpclient.NewNoRedirect(), "", srv.URL)
 		if !errors.Is(err, ErrUpstream) {
 			t.Fatalf("want ErrUpstream, got %v", err)
 		}
 	})
+}
+
+func TestResolveVideoID_CookieHeaderSet(t *testing.T) {
+	var gotCookie string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotCookie = r.Header.Get("Cookie")
+		w.Header().Set("Location", "https://www.iesdouyin.com/share/video/7000000000000000000/")
+		w.WriteHeader(http.StatusFound)
+	}))
+	defer srv.Close()
+
+	if _, err := ResolveVideoID(httpclient.NewNoRedirect(), "abc123", srv.URL); err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if gotCookie != "ttwid=abc123" {
+		t.Fatalf("want Cookie header 'ttwid=abc123', got %q", gotCookie)
+	}
+}
+
+func TestResolveVideoID_NoCookieHeaderWhenEmpty(t *testing.T) {
+	var gotCookie string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotCookie = r.Header.Get("Cookie")
+		w.Header().Set("Location", "https://www.iesdouyin.com/share/video/7000000000000000000/")
+		w.WriteHeader(http.StatusFound)
+	}))
+	defer srv.Close()
+
+	if _, err := ResolveVideoID(httpclient.NewNoRedirect(), "", srv.URL); err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if gotCookie != "" {
+		t.Fatalf("expected no Cookie header, got %q", gotCookie)
+	}
 }

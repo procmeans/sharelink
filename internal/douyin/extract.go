@@ -37,7 +37,7 @@ func ExtractWithConfig(cfg Config) (Result, error) {
 		cfg.ShareBaseURL = shareBaseURL
 	}
 
-	videoID, err := ResolveVideoID(httpclient.NewNoRedirect(), cfg.ShortURL)
+	videoID, err := ResolveVideoID(httpclient.NewNoRedirect(), "", cfg.ShortURL)
 	if err != nil {
 		return Result{}, err
 	}
