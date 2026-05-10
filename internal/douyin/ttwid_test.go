@@ -17,7 +17,7 @@ func TestTTWid_RefreshSuccess(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	m := newTTWidManagerWithURL(httpclient.NewFollowing(), srv.URL)
+	m := newTTWidManagerWithURL(httpclient.NewNoRedirect(), srv.URL)
 	if err := m.Refresh(); err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestTTWid_RefreshNoCookie(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	m := newTTWidManagerWithURL(httpclient.NewFollowing(), srv.URL)
+	m := newTTWidManagerWithURL(httpclient.NewNoRedirect(), srv.URL)
 	err := m.Refresh()
 	if !errors.Is(err, ErrUpstream) {
 		t.Fatalf("want ErrUpstream, got %v", err)
@@ -48,7 +48,7 @@ func TestTTWid_RefreshHTTPError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	m := newTTWidManagerWithURL(httpclient.NewFollowing(), srv.URL)
+	m := newTTWidManagerWithURL(httpclient.NewNoRedirect(), srv.URL)
 	err := m.Refresh()
 	if !errors.Is(err, ErrUpstream) {
 		t.Fatalf("want ErrUpstream, got %v", err)
@@ -56,7 +56,7 @@ func TestTTWid_RefreshHTTPError(t *testing.T) {
 }
 
 func TestTTWid_CookieEmptyBeforeRefresh(t *testing.T) {
-	m := newTTWidManagerWithURL(httpclient.NewFollowing(), "http://unused")
+	m := newTTWidManagerWithURL(httpclient.NewNoRedirect(), "http://unused")
 	if m.Cookie() != "" {
 		t.Fatalf("want empty cookie pre-refresh, got %q", m.Cookie())
 	}
@@ -66,7 +66,7 @@ func TestTTWid_RefreshFailureDoesNotClearExistingCookie(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: "ttwid", Value: "good"})
 	}))
-	m := newTTWidManagerWithURL(httpclient.NewFollowing(), srv.URL)
+	m := newTTWidManagerWithURL(httpclient.NewNoRedirect(), srv.URL)
 	if err := m.Refresh(); err != nil {
 		t.Fatalf("first refresh: %v", err)
 	}

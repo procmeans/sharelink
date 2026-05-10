@@ -96,6 +96,9 @@ func TestService_CacheMiss_ThenStores(t *testing.T) {
 	if res.CacheHit {
 		t.Fatal("expected cache miss, got CacheHit=true")
 	}
+	if res.TTWidRefreshed {
+		t.Fatal("expected TTWidRefreshed=false on first-fetch path")
+	}
 }
 
 func TestService_CacheHit_DoesNotCallShare(t *testing.T) {
@@ -118,6 +121,12 @@ func TestService_CacheHit_DoesNotCallShare(t *testing.T) {
 	}
 	if !res.CacheHit {
 		t.Fatal("expected cache hit, got CacheHit=false")
+	}
+	if res.VideoID != "7234567890123456789" {
+		t.Fatalf("want video id 7234567890123456789, got %q", res.VideoID)
+	}
+	if res.TTWidRefreshed {
+		t.Fatal("expected TTWidRefreshed=false on cache-hit path")
 	}
 }
 
