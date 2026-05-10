@@ -42,7 +42,7 @@ func ExtractWithConfig(cfg Config) (Result, error) {
 		return Result{}, err
 	}
 
-	playWM, err := fetchPlayURLFromBase(httpclient.NewFollowing(), cfg.ShareBaseURL, videoID)
+	playWM, err := fetchPlayURLFromBase(httpclient.NewFollowing(), "", cfg.ShareBaseURL, videoID)
 	if err != nil {
 		return Result{VideoID: videoID}, err
 	}

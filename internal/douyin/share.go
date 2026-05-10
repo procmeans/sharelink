@@ -34,14 +34,7 @@ type routerData struct {
 	} `json:"loaderData"`
 }
 
-// FetchPlayURL fetches the share page for videoID and returns the first
-// (still-watermarked) play URL from window._ROUTER_DATA. Use StripWatermark
-// on the result to remove the watermark.
-func FetchPlayURL(client *http.Client, videoID string) (string, error) {
-	return fetchPlayURLFromBase(client, shareBaseURL, videoID)
-}
-
-func fetchPlayURLFromBase(client *http.Client, baseURL, videoID string) (string, error) {
+func fetchPlayURLFromBase(client *http.Client, cookie, baseURL, videoID string) (string, error) {
 	target := fmt.Sprintf("%s/share/video/%s/", baseURL, videoID)
 
 	req, err := http.NewRequest(http.MethodGet, target, nil)
@@ -49,6 +42,9 @@ func fetchPlayURLFromBase(client *http.Client, baseURL, videoID string) (string,
 		return "", fmt.Errorf("%w: build request: %v", ErrUpstream, err)
 	}
 	req.Header.Set("User-Agent", httpclient.MobileUA)
+	if cookie != "" {
+		req.Header.Set("Cookie", "ttwid="+cookie)
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {

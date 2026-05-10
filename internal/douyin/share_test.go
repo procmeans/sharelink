@@ -30,7 +30,7 @@ func TestFetchPlayURL_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	got, err := fetchPlayURLFromBase(httpclient.NewFollowing(), srv.URL, "7234567890123456789")
+	got, err := fetchPlayURLFromBase(httpclient.NewFollowing(), "", srv.URL, "7234567890123456789")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestFetchPlayURL_NoRouterData(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err := fetchPlayURLFromBase(httpclient.NewFollowing(), srv.URL, "123")
+	_, err := fetchPlayURLFromBase(httpclient.NewFollowing(), "", srv.URL, "123")
 	if !errors.Is(err, ErrNoPlayURL) {
 		t.Fatalf("want ErrNoPlayURL, got %v", err)
 	}
@@ -59,7 +59,7 @@ func TestFetchPlayURL_EmptyURLList(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err := fetchPlayURLFromBase(httpclient.NewFollowing(), srv.URL, "123")
+	_, err := fetchPlayURLFromBase(httpclient.NewFollowing(), "", srv.URL, "123")
 	if !errors.Is(err, ErrNoPlayURL) {
 		t.Fatalf("want ErrNoPlayURL, got %v", err)
 	}
@@ -71,8 +71,50 @@ func TestFetchPlayURL_Upstream5xx(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err := fetchPlayURLFromBase(httpclient.NewFollowing(), srv.URL, "123")
+	_, err := fetchPlayURLFromBase(httpclient.NewFollowing(), "", srv.URL, "123")
 	if !errors.Is(err, ErrUpstream) {
 		t.Fatalf("want ErrUpstream, got %v", err)
+	}
+}
+
+func TestFetchPlayURL_CookieHeaderSet(t *testing.T) {
+	body, err := os.ReadFile("testdata/sample_share.html")
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	var gotCookie string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotCookie = r.Header.Get("Cookie")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = io.WriteString(w, string(body))
+	}))
+	defer srv.Close()
+
+	if _, err := fetchPlayURLFromBase(httpclient.NewFollowing(), "abc123", srv.URL, "7234567890123456789"); err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if gotCookie != "ttwid=abc123" {
+		t.Fatalf("want Cookie header 'ttwid=abc123', got %q", gotCookie)
+	}
+}
+
+func TestFetchPlayURL_NoCookieHeaderWhenEmpty(t *testing.T) {
+	body, err := os.ReadFile("testdata/sample_share.html")
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	var gotCookie string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotCookie = r.Header.Get("Cookie")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = io.WriteString(w, string(body))
+	}))
+	defer srv.Close()
+
+	if _, err := fetchPlayURLFromBase(httpclient.NewFollowing(), "", srv.URL, "7234567890123456789"); err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if gotCookie != "" {
+		t.Fatalf("expected no Cookie header, got %q", gotCookie)
 	}
 }
