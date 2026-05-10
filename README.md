@@ -54,3 +54,10 @@ go test ./...
 ```
 
 All tests are offline; no real Douyin requests.
+
+## Operational notes
+
+- On startup the server fetches a `ttwid` cookie from `https://www.douyin.com/`. Failure is fatal — the process exits with status 1.
+- Successful parses are cached in-process by `video_id` for 30 minutes (LRU, max 1000 entries). Cache survives only the lifetime of the process.
+- If the share-page parser returns "no play URL" the server refreshes ttwid and retries the share fetch exactly once before giving up.
+- Each request log includes `cache_hit` and `ttwid_refreshed` fields. A wave of `ttwid_refreshed=true` followed by `code:2002` is the signal that ttwid alone is no longer sufficient.
