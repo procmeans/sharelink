@@ -1,0 +1,8 @@
+# binaries
+/server
+/cmd/server/server
+
+# editor
+.DS_Store
+.idea/
+.vscode/
