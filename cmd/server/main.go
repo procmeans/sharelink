@@ -17,8 +17,13 @@ import (
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
 
-	// Temporary placeholder wiring; real ttwid + cache assembly is Task 9.
 	ttwid := douyin.NewTTWidManager(httpclient.NewFollowing())
+	if err := ttwid.Refresh(); err != nil {
+		slog.Error("ttwid refresh failed at startup", "err", err.Error())
+		os.Exit(1)
+	}
+	slog.Info("ttwid acquired", "len", len(ttwid.Cookie()))
+
 	c := cache.New(1000, 30*time.Minute)
 	svc := douyin.NewService(ttwid, c)
 
