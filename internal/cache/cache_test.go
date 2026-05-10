@@ -42,3 +42,48 @@ func TestCache_OverwriteSameKey(t *testing.T) {
 		t.Fatalf("want len 1, got %d", c.Len())
 	}
 }
+
+func TestCache_LRUEviction(t *testing.T) {
+	c := New(3, time.Minute)
+	c.Set("a", "1")
+	c.Set("b", "2")
+	c.Set("c", "3")
+	// "a" is the oldest. Touching "a" via Get should make "b" the oldest.
+	if _, ok := c.Get("a"); !ok {
+		t.Fatal("a should be present")
+	}
+	c.Set("d", "4") // evicts the LRU
+	if _, ok := c.Get("b"); ok {
+		t.Fatal("b should have been evicted (was LRU)")
+	}
+	for _, k := range []string{"a", "c", "d"} {
+		if _, ok := c.Get(k); !ok {
+			t.Fatalf("%s should still be present", k)
+		}
+	}
+	if c.Len() != 3 {
+		t.Fatalf("want len 3, got %d", c.Len())
+	}
+}
+
+func TestCache_OverwritePromotes(t *testing.T) {
+	c := New(2, time.Minute)
+	c.Set("a", "1")
+	c.Set("b", "2")
+	c.Set("a", "1b") // should promote a, not evict
+	c.Set("c", "3")  // should evict b
+	if _, ok := c.Get("b"); ok {
+		t.Fatal("b should have been evicted")
+	}
+	if got, _ := c.Get("a"); got != "1b" {
+		t.Fatalf("want a=1b, got %q", got)
+	}
+}
+
+func TestCache_ZeroCapacity(t *testing.T) {
+	c := New(0, time.Minute)
+	c.Set("a", "1")
+	if _, ok := c.Get("a"); ok {
+		t.Fatal("zero-capacity cache must hold nothing")
+	}
+}
