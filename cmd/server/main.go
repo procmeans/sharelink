@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
