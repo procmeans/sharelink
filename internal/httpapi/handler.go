@@ -65,12 +65,12 @@ func parseHandler(extract ExtractFunc) http.HandlerFunc {
 		if err != nil {
 			status, code := mapError(err)
 			writeError(w, status, code, err.Error())
-			logRequest(req.URL, res.VideoID, "", "error", code, time.Since(start))
+			logRequest(req.URL, res.VideoID, "", "error", code, res.CacheHit, res.TTWidRefreshed, time.Since(start))
 			return
 		}
 
 		writeJSON(w, http.StatusOK, successResponse{Code: 0, PlayURL: res.PlayURL})
-		logRequest(req.URL, res.VideoID, res.PlayURL, "ok", 0, time.Since(start))
+		logRequest(req.URL, res.VideoID, res.PlayURL, "ok", 0, res.CacheHit, res.TTWidRefreshed, time.Since(start))
 	}
 }
 
@@ -99,7 +99,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-func logRequest(input, videoID, playURL, result string, code int, dur time.Duration) {
+func logRequest(input, videoID, playURL, result string, code int, cacheHit, ttwidRefreshed bool, dur time.Duration) {
 	in := input
 	if len(in) > 100 {
 		in = in[:100]
@@ -110,6 +110,8 @@ func logRequest(input, videoID, playURL, result string, code int, dur time.Durat
 		"play_url", playURL,
 		"result", result,
 		"code", code,
+		"cache_hit", cacheHit,
+		"ttwid_refreshed", ttwidRefreshed,
 		"duration_ms", dur.Milliseconds(),
 	)
 }

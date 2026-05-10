@@ -93,6 +93,9 @@ func TestService_CacheMiss_ThenStores(t *testing.T) {
 	if *shareCalls != 1 {
 		t.Fatalf("want 1 share call, got %d", *shareCalls)
 	}
+	if res.CacheHit {
+		t.Fatal("expected cache miss, got CacheHit=true")
+	}
 }
 
 func TestService_CacheHit_DoesNotCallShare(t *testing.T) {
@@ -112,6 +115,9 @@ func TestService_CacheHit_DoesNotCallShare(t *testing.T) {
 	}
 	if *shareCalls != 0 {
 		t.Fatalf("share should not have been called, but was %d times", *shareCalls)
+	}
+	if !res.CacheHit {
+		t.Fatal("expected cache hit, got CacheHit=false")
 	}
 }
 
@@ -141,6 +147,9 @@ func TestService_NoPlayURL_RefreshTTWid_ThenSucceeds(t *testing.T) {
 	}
 	if ttwid.Cookie() != "freshval" {
 		t.Fatalf("want ttwid refreshed to freshval, got %q", ttwid.Cookie())
+	}
+	if !res.TTWidRefreshed {
+		t.Fatal("expected TTWidRefreshed=true")
 	}
 }
 

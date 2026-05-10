@@ -10,8 +10,10 @@ import (
 // Result is what Extract returns: the watermark-free play URL plus the
 // numeric video id (useful for logging/correlation).
 type Result struct {
-	PlayURL string
-	VideoID string
+	PlayURL        string
+	VideoID        string
+	CacheHit       bool
+	TTWidRefreshed bool
 }
 
 // Config lets tests inject a fake short URL and share base.
@@ -53,23 +55,24 @@ func (s *Service) ExtractWithConfig(cfg Config) (Result, error) {
 	}
 
 	if cached, ok := s.cache.Get(videoID); ok {
-		return Result{PlayURL: cached, VideoID: videoID}, nil
+		return Result{PlayURL: cached, VideoID: videoID, CacheHit: true}, nil
 	}
 
 	shareClient := httpclient.NewFollowing()
 	playWM, err := fetchPlayURLFromBase(shareClient, s.ttwid.Cookie(), cfg.ShareBaseURL, videoID)
+	refreshed := false
 	if errors.Is(err, ErrNoPlayURL) {
-		// Refresh ttwid and retry the share step exactly once.
+		refreshed = true
 		if rerr := s.ttwid.Refresh(); rerr != nil {
-			return Result{VideoID: videoID}, err
+			return Result{VideoID: videoID, TTWidRefreshed: refreshed}, err
 		}
 		playWM, err = fetchPlayURLFromBase(shareClient, s.ttwid.Cookie(), cfg.ShareBaseURL, videoID)
 	}
 	if err != nil {
-		return Result{VideoID: videoID}, err
+		return Result{VideoID: videoID, TTWidRefreshed: refreshed}, err
 	}
 
 	playURL := StripWatermark(playWM)
 	s.cache.Set(videoID, playURL)
-	return Result{PlayURL: playURL, VideoID: videoID}, nil
+	return Result{PlayURL: playURL, VideoID: videoID, TTWidRefreshed: refreshed}, nil
 }
