@@ -33,6 +33,20 @@ func NewService(ttwid *TTWidManager, c *cache.Cache) *Service {
 	return &Service{ttwid: ttwid, cache: c}
 }
 
+func (s *Service) cookie() string {
+	if s.ttwid == nil {
+		return ""
+	}
+	return s.ttwid.Cookie()
+}
+
+func (s *Service) refresh() error {
+	if s.ttwid == nil {
+		return errors.New("ttwid manager not configured")
+	}
+	return s.ttwid.Refresh()
+}
+
 // Extract is the high-level entry point: take user-pasted share text or a
 // short URL and return a watermark-free mp4 URL plus the video id.
 func (s *Service) Extract(input string) (Result, error) {
@@ -49,7 +63,7 @@ func (s *Service) ExtractWithConfig(cfg Config) (Result, error) {
 		cfg.ShareBaseURL = shareBaseURL
 	}
 
-	videoID, err := ResolveVideoID(httpclient.NewNoRedirect(), s.ttwid.Cookie(), cfg.ShortURL)
+	videoID, err := ResolveVideoID(httpclient.NewNoRedirect(), s.cookie(), cfg.ShortURL)
 	if err != nil {
 		return Result{}, err
 	}
@@ -59,14 +73,14 @@ func (s *Service) ExtractWithConfig(cfg Config) (Result, error) {
 	}
 
 	shareClient := httpclient.NewFollowing()
-	playWM, err := fetchPlayURLFromBase(shareClient, s.ttwid.Cookie(), cfg.ShareBaseURL, videoID)
+	playWM, err := fetchPlayURLFromBase(shareClient, s.cookie(), cfg.ShareBaseURL, videoID)
 	refreshed := false
 	if errors.Is(err, ErrNoPlayURL) {
 		refreshed = true
-		if rerr := s.ttwid.Refresh(); rerr != nil {
+		if rerr := s.refresh(); rerr != nil {
 			return Result{VideoID: videoID, TTWidRefreshed: refreshed}, err
 		}
-		playWM, err = fetchPlayURLFromBase(shareClient, s.ttwid.Cookie(), cfg.ShareBaseURL, videoID)
+		playWM, err = fetchPlayURLFromBase(shareClient, s.cookie(), cfg.ShareBaseURL, videoID)
 	}
 	if err != nil {
 		return Result{VideoID: videoID, TTWidRefreshed: refreshed}, err

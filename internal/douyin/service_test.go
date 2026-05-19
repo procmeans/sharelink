@@ -190,3 +190,39 @@ func TestService_Extract_NoShortURL(t *testing.T) {
 		t.Fatalf("want ErrNoShortURL, got %v", err)
 	}
 }
+
+func TestService_NilTTWid_HappyPath(t *testing.T) {
+	fixture := mustReadFixture(t)
+	srv, shortURL, shareCalls := fakeDouyin(t, "7234567890123456789", [][]byte{fixture})
+	defer srv.Close()
+
+	svc := NewService(nil, cache.New(10, time.Minute))
+	res, err := svc.ExtractWithConfig(Config{ShortURL: shortURL, ShareBaseURL: srv.URL})
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if res.PlayURL == "" {
+		t.Fatal("want non-empty play_url")
+	}
+	if res.VideoID != "7234567890123456789" {
+		t.Fatalf("want video id, got %q", res.VideoID)
+	}
+	if *shareCalls != 1 {
+		t.Fatalf("want 1 share call, got %d", *shareCalls)
+	}
+}
+
+func TestService_NilTTWid_NoPlayURL_NoRetry(t *testing.T) {
+	emptyShare := []byte(`<html><body>nothing</body></html>`)
+	srv, shortURL, shareCalls := fakeDouyin(t, "7234567890123456789", [][]byte{emptyShare})
+	defer srv.Close()
+
+	svc := NewService(nil, cache.New(10, time.Minute))
+	_, err := svc.ExtractWithConfig(Config{ShortURL: shortURL, ShareBaseURL: srv.URL})
+	if !errors.Is(err, ErrNoPlayURL) {
+		t.Fatalf("want ErrNoPlayURL, got %v", err)
+	}
+	if *shareCalls != 1 {
+		t.Fatalf("nil ttwid should NOT retry, want 1 share call, got %d", *shareCalls)
+	}
+}
