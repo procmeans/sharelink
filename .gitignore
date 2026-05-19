@@ -1,6 +1,7 @@
 # binaries
-/server
-/cmd/server/server
+/sharelink
+/cmd/sharelink/sharelink
+/dist/
 
 # editor
 .DS_Store
