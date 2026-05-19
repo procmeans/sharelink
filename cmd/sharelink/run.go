@@ -31,9 +31,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	case "parse":
 		return runParse(args[2:], stdin, stdout, stderr, realExtractorFactory)
 	case "serve":
-		// Real implementation lands in Task 4.
-		fmt.Fprintln(stderr, "sharelink: serve not yet implemented")
-		return 1
+		return runServe(args[2:], stderr)
 	case "version":
 		return runVersion(stdout)
 	case "-h", "--help", "help":

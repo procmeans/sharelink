@@ -1,8 +1,9 @@
-// Package main is the HTTP server entrypoint for the Douyin direct-link service.
 package main
 
 import (
 	"errors"
+	"flag"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -14,29 +15,37 @@ import (
 	"github.com/procmeans/sharelink/internal/httpclient"
 )
 
-func main() {
+func runServe(args []string, stderr io.Writer) int {
+	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	portFlag := fs.String("port", "", "listen port (defaults to $PORT or 8080)")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
 
 	ttwid := douyin.NewTTWidManager(httpclient.NewNoRedirect())
 	if err := ttwid.Refresh(); err != nil {
 		slog.Error("ttwid refresh failed at startup", "err", err.Error())
-		os.Exit(1)
+		return 1
 	}
 	slog.Info("ttwid acquired", "len", len(ttwid.Cookie()))
 
 	c := cache.New(1000, 30*time.Minute)
 	svc := douyin.NewService(ttwid, c)
 
-	port := os.Getenv("PORT")
+	port := *portFlag
+	if port == "" {
+		port = os.Getenv("PORT")
+	}
 	if port == "" {
 		port = "8080"
 	}
 
-	handler := httpapi.NewHandler(svc.Extract)
-
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      handler,
+		Handler:      httpapi.NewHandler(svc.Extract),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 	}
@@ -45,6 +54,7 @@ func main() {
 	err := srv.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("server failed", "err", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
