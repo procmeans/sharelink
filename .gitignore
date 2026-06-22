@@ -3,6 +3,9 @@
 /cmd/sharelink/sharelink
 /dist/
 
+# downloaded sample media
+/downloads/
+
 # editor
 .DS_Store
 .idea/

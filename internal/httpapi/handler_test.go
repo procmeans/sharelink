@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/procmeans/sharelink/internal/douyin"
+	"github.com/procmeans/sharelink/internal/extract"
 )
 
 func TestParseHandler_BadJSON(t *testing.T) {
@@ -163,11 +164,11 @@ func TestHealthz(t *testing.T) {
 // helpers
 
 func stubExtract(playURL string, err error) ExtractFunc {
-	return func(input string) (douyin.Result, error) {
+	return func(input string) (extract.Result, error) {
 		if err != nil {
-			return douyin.Result{}, err
+			return extract.Result{}, err
 		}
-		return douyin.Result{PlayURL: playURL}, nil
+		return extract.Result{Source: "douyin", PlayURL: playURL}, nil
 	}
 }
 

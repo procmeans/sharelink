@@ -7,16 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/procmeans/sharelink/internal/douyin"
+	"github.com/procmeans/sharelink/internal/extract"
 )
 
 func stubFactory(playURL, videoID string, returnErr error) extractorFactory {
-	return func(withTTWid bool) (func(string) (douyin.Result, error), error) {
-		return func(input string) (douyin.Result, error) {
+	return func(opts extractorOpts) (func(string) (extract.Result, error), error) {
+		return func(input string) (extract.Result, error) {
 			if returnErr != nil {
-				return douyin.Result{}, returnErr
+				return extract.Result{}, returnErr
 			}
-			return douyin.Result{PlayURL: playURL, VideoID: videoID}, nil
+			return extract.Result{Source: "douyin", PlayURL: playURL, VideoID: videoID}, nil
 		}, nil
 	}
 }

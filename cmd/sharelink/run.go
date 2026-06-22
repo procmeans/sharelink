@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-const usage = `sharelink: extract watermark-free Douyin video URLs
+const usage = `sharelink: extract direct video URLs from Douyin and YouTube
 
 Usage:
   sharelink <command> [flags]

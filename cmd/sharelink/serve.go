@@ -11,8 +11,10 @@ import (
 
 	"github.com/procmeans/sharelink/internal/cache"
 	"github.com/procmeans/sharelink/internal/douyin"
+	"github.com/procmeans/sharelink/internal/extract"
 	"github.com/procmeans/sharelink/internal/httpapi"
 	"github.com/procmeans/sharelink/internal/httpclient"
+	"github.com/procmeans/sharelink/internal/youtube"
 )
 
 func runServe(args []string, stderr io.Writer) int {
@@ -33,7 +35,7 @@ func runServe(args []string, stderr io.Writer) int {
 	slog.Info("ttwid acquired", "len", len(ttwid.Cookie()))
 
 	c := cache.New(1000, 30*time.Minute)
-	svc := douyin.NewService(ttwid, c)
+	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(youtube.Muxed))
 
 	port := *portFlag
 	if port == "" {
@@ -45,7 +47,7 @@ func runServe(args []string, stderr io.Writer) int {
 
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      httpapi.NewHandler(svc.Extract),
+		Handler:      httpapi.NewHandler(router.Extract),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 	}
