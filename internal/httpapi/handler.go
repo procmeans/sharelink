@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/procmeans/sharelink/internal/bilibili"
 	"github.com/procmeans/sharelink/internal/douyin"
 	"github.com/procmeans/sharelink/internal/extract"
 	"github.com/procmeans/sharelink/internal/youtube"
@@ -91,15 +92,18 @@ func mapError(err error) (int, int) {
 	switch {
 	case errors.Is(err, douyin.ErrNoShortURL),
 		errors.Is(err, youtube.ErrNoVideoURL),
+		errors.Is(err, bilibili.ErrNoVideoURL),
 		errors.Is(err, extract.ErrUnsupportedURL):
 		return http.StatusUnprocessableEntity, 1002
 	case errors.Is(err, douyin.ErrInvalidRedirect):
 		return http.StatusUnprocessableEntity, 1003
 	case errors.Is(err, douyin.ErrUpstream),
-		errors.Is(err, youtube.ErrUpstream):
+		errors.Is(err, youtube.ErrUpstream),
+		errors.Is(err, bilibili.ErrUpstream):
 		return http.StatusBadGateway, 2001
 	case errors.Is(err, douyin.ErrNoPlayURL),
-		errors.Is(err, youtube.ErrNoStream):
+		errors.Is(err, youtube.ErrNoStream),
+		errors.Is(err, bilibili.ErrNoStream):
 		return http.StatusBadGateway, 2002
 	default:
 		return http.StatusInternalServerError, 1000

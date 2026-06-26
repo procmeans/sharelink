@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/procmeans/sharelink/internal/bilibili"
 	"github.com/procmeans/sharelink/internal/cache"
 	"github.com/procmeans/sharelink/internal/douyin"
 	"github.com/procmeans/sharelink/internal/extract"
@@ -148,6 +149,6 @@ func realExtractorFactory(opts extractorOpts) (func(string) (extract.Result, err
 			return nil, fmt.Errorf("ttwid refresh: %w", err)
 		}
 	}
-	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(opts.quality))
+	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(opts.quality), bilibili.NewService())
 	return router.Extract, nil
 }
