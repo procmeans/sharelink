@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-const usage = `sharelink: extract direct video URLs from Douyin, YouTube and Bilibili
+const usage = `sharelink: extract direct video URLs from Douyin, YouTube, Bilibili and yfsp.tv
 
 Usage:
   sharelink <command> [flags]

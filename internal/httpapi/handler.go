@@ -11,6 +11,7 @@ import (
 	"github.com/procmeans/sharelink/internal/bilibili"
 	"github.com/procmeans/sharelink/internal/douyin"
 	"github.com/procmeans/sharelink/internal/extract"
+	"github.com/procmeans/sharelink/internal/yfsp"
 	"github.com/procmeans/sharelink/internal/youtube"
 )
 
@@ -93,6 +94,7 @@ func mapError(err error) (int, int) {
 	case errors.Is(err, douyin.ErrNoShortURL),
 		errors.Is(err, youtube.ErrNoVideoURL),
 		errors.Is(err, bilibili.ErrNoVideoURL),
+		errors.Is(err, yfsp.ErrNoVideoURL),
 		errors.Is(err, extract.ErrUnsupportedURL):
 		return http.StatusUnprocessableEntity, 1002
 	case errors.Is(err, douyin.ErrInvalidRedirect):

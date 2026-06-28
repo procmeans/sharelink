@@ -13,6 +13,7 @@ import (
 	"github.com/procmeans/sharelink/internal/douyin"
 	"github.com/procmeans/sharelink/internal/extract"
 	"github.com/procmeans/sharelink/internal/httpclient"
+	"github.com/procmeans/sharelink/internal/yfsp"
 	"github.com/procmeans/sharelink/internal/youtube"
 )
 
@@ -149,6 +150,6 @@ func realExtractorFactory(opts extractorOpts) (func(string) (extract.Result, err
 			return nil, fmt.Errorf("ttwid refresh: %w", err)
 		}
 	}
-	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(opts.quality), bilibili.NewService())
+	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(opts.quality), bilibili.NewService(), yfsp.NewService())
 	return router.Extract, nil
 }
