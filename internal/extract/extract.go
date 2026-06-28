@@ -84,6 +84,7 @@ func (r *Router) Extract(input string) (Result, error) {
 		return Result{
 			Source:  "yfsp",
 			VideoID: res.ID,
+			Title:   res.Title,
 			PlayURL: res.PlayURL,
 		}, nil
 

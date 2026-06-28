@@ -3,8 +3,8 @@ package yfsp
 import "regexp"
 
 // linkRe matches a yfsp.tv (爱壹帆) play-page URL: /play/<contentKey> followed
-// by a query string. The mediaKey we actually need is the id query parameter,
-// pulled out separately by idFromURL.
+// by a query string. The mediaKey we resolve is the id query parameter, pulled
+// out by idFromURL.
 var linkRe = regexp.MustCompile(
 	`https?://(?:www\.|m\.)?yfsp\.tv/play/[0-9A-Za-z]+\?\S+`)
 

@@ -101,11 +101,13 @@ func mapError(err error) (int, int) {
 		return http.StatusUnprocessableEntity, 1003
 	case errors.Is(err, douyin.ErrUpstream),
 		errors.Is(err, youtube.ErrUpstream),
-		errors.Is(err, bilibili.ErrUpstream):
+		errors.Is(err, bilibili.ErrUpstream),
+		errors.Is(err, yfsp.ErrUpstream):
 		return http.StatusBadGateway, 2001
 	case errors.Is(err, douyin.ErrNoPlayURL),
 		errors.Is(err, youtube.ErrNoStream),
-		errors.Is(err, bilibili.ErrNoStream):
+		errors.Is(err, bilibili.ErrNoStream),
+		errors.Is(err, yfsp.ErrNoStream):
 		return http.StatusBadGateway, 2002
 	default:
 		return http.StatusInternalServerError, 1000

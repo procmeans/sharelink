@@ -1,6 +1,9 @@
 package yfsp
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestMatches(t *testing.T) {
 	cases := []struct {
@@ -48,16 +51,49 @@ func TestExtract_NoLink(t *testing.T) {
 	}
 }
 
-func TestExtract_BuildsMasterURL(t *testing.T) {
-	res, err := NewService().Extract("https://www.yfsp.tv/play/pWhVSfzEJbT?id=d87w3SbmpT9")
-	if err != nil {
-		t.Fatalf("Extract: %v", err)
+// TestBestStream models the real video/play clarity shape: HD entries are
+// VIP-locked (disabled, no URL); the standard-definition entry is playable.
+func TestBestStream(t *testing.T) {
+	const body = `[
+		{"title":"1080","bitrate":1080000,"isVIP":true,"isEnabled":false,"path":null},
+		{"title":"720","bitrate":720000,"isVIP":true,"isEnabled":false,"path":null},
+		{"title":"576","bitrate":576000,"isVIP":false,"isEnabled":true,"path":{"isHls":true,"result":"https://cdn.example/chunklist.m3u8?t=1"}}
+	]`
+	var clarities []clarityEntry
+	if err := json.Unmarshal([]byte(body), &clarities); err != nil {
+		t.Fatal(err)
 	}
-	if res.ID != "d87w3SbmpT9" {
-		t.Errorf("ID = %q, want d87w3SbmpT9", res.ID)
+	url, quality := bestStream(clarities)
+	if url != "https://cdn.example/chunklist.m3u8?t=1" {
+		t.Errorf("url = %q", url)
 	}
-	want := "https://upload.yfsp.tv/api/video/MasterPlayList?id=d87w3SbmpT9"
-	if res.PlayURL != want {
-		t.Errorf("PlayURL = %q, want %q", res.PlayURL, want)
+	if quality != "576" {
+		t.Errorf("quality = %q, want 576", quality)
+	}
+}
+
+func TestBestStream_PrefersHighestEnabledBitrate(t *testing.T) {
+	clarities := []clarityEntry{
+		{Title: "576", Bitrate: 576000, IsEnabled: true, Path: &struct {
+			IsHls  bool   `json:"isHls"`
+			Result string `json:"result"`
+		}{true, "sd.m3u8"}},
+		{Title: "1080", Bitrate: 1080000, IsEnabled: true, Path: &struct {
+			IsHls  bool   `json:"isHls"`
+			Result string `json:"result"`
+		}{true, "hd.m3u8"}},
+	}
+	url, quality := bestStream(clarities)
+	if url != "hd.m3u8" || quality != "1080" {
+		t.Errorf("got (%q,%q), want (hd.m3u8,1080)", url, quality)
+	}
+}
+
+func TestBestStream_NoneEnabled(t *testing.T) {
+	clarities := []clarityEntry{
+		{Title: "1080", Bitrate: 1080000, IsEnabled: false},
+	}
+	if url, _ := bestStream(clarities); url != "" {
+		t.Errorf("want empty url when nothing enabled, got %q", url)
 	}
 }
