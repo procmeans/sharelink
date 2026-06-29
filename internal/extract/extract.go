@@ -9,6 +9,7 @@ import (
 
 	"github.com/procmeans/sharelink/internal/bilibili"
 	"github.com/procmeans/sharelink/internal/douyin"
+	"github.com/procmeans/sharelink/internal/xhs"
 	"github.com/procmeans/sharelink/internal/yfsp"
 	"github.com/procmeans/sharelink/internal/youtube"
 )
@@ -21,14 +22,16 @@ var ErrUnsupportedURL = errors.New("extract: no supported video link found in in
 // Douyin sets PlayURL (a single watermark-free mp4). Bilibili sets PlayURL (a
 // single muxed mp4). yfsp sets PlayURL (an HLS master m3u8). YouTube high
 // quality is delivered as separated DASH streams, so it sets VideoURL and
-// AudioURL instead, leaving PlayURL empty.
+// AudioURL instead, leaving PlayURL empty. Xiaohongshu sets PlayURL for video
+// notes and Images for image notes.
 type Result struct {
-	Source         string // "douyin", "youtube", "bilibili" or "yfsp"
+	Source         string // "douyin", "youtube", "bilibili", "yfsp" or "xhs"
 	VideoID        string
 	Title          string
-	PlayURL        string // single muxed/playable URL (Douyin)
-	VideoURL       string // video-only stream (YouTube, highest quality)
-	AudioURL       string // audio-only stream (YouTube)
+	PlayURL        string   // single muxed/playable URL (Douyin)
+	VideoURL       string   // video-only stream (YouTube, highest quality)
+	AudioURL       string   // audio-only stream (YouTube)
+	Images         []string // watermark-free image URLs (Xiaohongshu image notes)
 	CacheHit       bool
 	TTWidRefreshed bool
 }
@@ -40,11 +43,12 @@ type Router struct {
 	youtube  *youtube.Service
 	bilibili *bilibili.Service
 	yfsp     *yfsp.Service
+	xhs      *xhs.Service
 }
 
 // NewRouter wires the configured providers. Any may be nil.
-func NewRouter(dy *douyin.Service, yt *youtube.Service, bili *bilibili.Service, yf *yfsp.Service) *Router {
-	return &Router{douyin: dy, youtube: yt, bilibili: bili, yfsp: yf}
+func NewRouter(dy *douyin.Service, yt *youtube.Service, bili *bilibili.Service, yf *yfsp.Service, xh *xhs.Service) *Router {
+	return &Router{douyin: dy, youtube: yt, bilibili: bili, yfsp: yf, xhs: xh}
 }
 
 // Extract detects the platform from input and returns a neutral Result.
@@ -86,6 +90,19 @@ func (r *Router) Extract(input string) (Result, error) {
 			VideoID: res.ID,
 			Title:   res.Title,
 			PlayURL: res.PlayURL,
+		}, nil
+
+	case r.xhs != nil && xhs.Matches(input):
+		res, err := r.xhs.Extract(input)
+		if err != nil {
+			return Result{Source: "xhs"}, err
+		}
+		return Result{
+			Source:  "xhs",
+			VideoID: res.NoteID,
+			Title:   res.Title,
+			PlayURL: res.PlayURL,
+			Images:  res.Images,
 		}, nil
 
 	case r.douyin != nil && douyin.Matches(input):

@@ -13,6 +13,7 @@ import (
 	"github.com/procmeans/sharelink/internal/douyin"
 	"github.com/procmeans/sharelink/internal/extract"
 	"github.com/procmeans/sharelink/internal/httpclient"
+	"github.com/procmeans/sharelink/internal/xhs"
 	"github.com/procmeans/sharelink/internal/yfsp"
 	"github.com/procmeans/sharelink/internal/youtube"
 )
@@ -82,7 +83,8 @@ func youtubeQuality(hq, mp4 bool) youtube.Quality {
 }
 
 // plainURLs returns the URL line(s) for plain-text output. Douyin yields a
-// single play URL; YouTube yields the video stream followed by the audio stream.
+// single play URL; YouTube yields the video stream followed by the audio
+// stream; a Xiaohongshu image note yields one image URL per line.
 func plainURLs(res extract.Result) []string {
 	if res.PlayURL != "" {
 		return []string{res.PlayURL}
@@ -94,6 +96,7 @@ func plainURLs(res extract.Result) []string {
 	if res.AudioURL != "" {
 		out = append(out, res.AudioURL)
 	}
+	out = append(out, res.Images...)
 	return out
 }
 
@@ -115,17 +118,19 @@ func readInput(extraArgs []string, stdin io.Reader) (string, error) {
 
 func writeJSON(stdout, stderr io.Writer, res extract.Result) int {
 	out := struct {
-		Source   string `json:"source,omitempty"`
-		PlayURL  string `json:"play_url,omitempty"`
-		VideoURL string `json:"video_url,omitempty"`
-		AudioURL string `json:"audio_url,omitempty"`
-		VideoID  string `json:"video_id,omitempty"`
-		Title    string `json:"title,omitempty"`
+		Source   string   `json:"source,omitempty"`
+		PlayURL  string   `json:"play_url,omitempty"`
+		VideoURL string   `json:"video_url,omitempty"`
+		AudioURL string   `json:"audio_url,omitempty"`
+		Images   []string `json:"images,omitempty"`
+		VideoID  string   `json:"video_id,omitempty"`
+		Title    string   `json:"title,omitempty"`
 	}{
 		Source:   res.Source,
 		PlayURL:  res.PlayURL,
 		VideoURL: res.VideoURL,
 		AudioURL: res.AudioURL,
+		Images:   res.Images,
 		VideoID:  res.VideoID,
 		Title:    res.Title,
 	}
@@ -150,6 +155,6 @@ func realExtractorFactory(opts extractorOpts) (func(string) (extract.Result, err
 			return nil, fmt.Errorf("ttwid refresh: %w", err)
 		}
 	}
-	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(opts.quality), bilibili.NewService(), yfsp.NewService())
+	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(opts.quality), bilibili.NewService(), yfsp.NewService(), xhs.NewService())
 	return router.Extract, nil
 }
