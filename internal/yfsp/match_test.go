@@ -14,6 +14,10 @@ func TestMatches(t *testing.T) {
 		{"watch https://www.yfsp.tv/play/pWhVSfzEJbT?id=d87w3SbmpT9 now", true},
 		{"https://m.yfsp.tv/play/pWhVSfzEJbT?id=d87w3SbmpT9", true},
 		{"https://yfsp.tv/play/pWhVSfzEJbT?ref=x&id=d87w3SbmpT9", true},
+		{"https://www.ayf.tv/play/pWhVSfzEJbT?id=d87w3SbmpT9", true},
+		{"https://m.ayf.tv/play/pWhVSfzEJbT?id=d87w3SbmpT9", true},
+		{"https://ayf.tv/play/pWhVSfzEJbT?ref=x&id=d87w3SbmpT9", true},
+		{"https://www.ayf.tv/play/pWhVSfzEJbT", false}, // no id
 		{"https://www.yfsp.tv/play/pWhVSfzEJbT", false}, // no id
 		{"https://www.yfsp.tv/play/pWhVSfzEJbT?p=1", false},
 		{"https://www.bilibili.com/video/BV1esV8zRETW/", false},

@@ -2,11 +2,12 @@ package yfsp
 
 import "regexp"
 
-// linkRe matches a yfsp.tv (爱壹帆) play-page URL: /play/<contentKey> followed
-// by a query string. The mediaKey we resolve is the id query parameter, pulled
+// linkRe matches a yfsp.tv / ayf.tv (爱壹帆) play-page URL: /play/<contentKey>
+// followed by a query string. ayf.tv is an alternate front-end domain backed by
+// the same play API. The mediaKey we resolve is the id query parameter, pulled
 // out by idFromURL.
 var linkRe = regexp.MustCompile(
-	`https?://(?:www\.|m\.)?yfsp\.tv/play/[0-9A-Za-z]+\?\S+`)
+	`https?://(?:www\.|m\.)?(?:yfsp\.tv|ayf\.tv)/play/[0-9A-Za-z]+\?\S+`)
 
 // idRe pulls the id (mediaKey) query parameter out of a play URL.
 var idRe = regexp.MustCompile(`[?&]id=([0-9A-Za-z]+)`)
