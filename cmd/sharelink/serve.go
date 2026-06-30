@@ -15,6 +15,7 @@ import (
 	"github.com/procmeans/sharelink/internal/extract"
 	"github.com/procmeans/sharelink/internal/httpapi"
 	"github.com/procmeans/sharelink/internal/httpclient"
+	"github.com/procmeans/sharelink/internal/iyf"
 	"github.com/procmeans/sharelink/internal/xhs"
 	"github.com/procmeans/sharelink/internal/yfsp"
 	"github.com/procmeans/sharelink/internal/youtube"
@@ -38,7 +39,7 @@ func runServe(args []string, stderr io.Writer) int {
 	slog.Info("ttwid acquired", "len", len(ttwid.Cookie()))
 
 	c := cache.New(1000, 30*time.Minute)
-	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(youtube.Muxed), bilibili.NewService(), yfsp.NewService(), xhs.NewService())
+	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(youtube.Muxed), bilibili.NewService(), yfsp.NewService(), iyf.NewService(), xhs.NewService())
 
 	port := *portFlag
 	if port == "" {

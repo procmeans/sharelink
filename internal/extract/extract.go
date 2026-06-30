@@ -9,6 +9,7 @@ import (
 
 	"github.com/procmeans/sharelink/internal/bilibili"
 	"github.com/procmeans/sharelink/internal/douyin"
+	"github.com/procmeans/sharelink/internal/iyf"
 	"github.com/procmeans/sharelink/internal/xhs"
 	"github.com/procmeans/sharelink/internal/yfsp"
 	"github.com/procmeans/sharelink/internal/youtube"
@@ -20,12 +21,12 @@ var ErrUnsupportedURL = errors.New("extract: no supported video link found in in
 // Result is the platform-neutral extraction result.
 //
 // Douyin sets PlayURL (a single watermark-free mp4). Bilibili sets PlayURL (a
-// single muxed mp4). yfsp sets PlayURL (an HLS master m3u8). YouTube high
-// quality is delivered as separated DASH streams, so it sets VideoURL and
+// single muxed mp4). yfsp and iyf set PlayURL (an HLS chunklist m3u8). YouTube
+// high quality is delivered as separated DASH streams, so it sets VideoURL and
 // AudioURL instead, leaving PlayURL empty. Xiaohongshu sets PlayURL for video
 // notes and Images for image notes.
 type Result struct {
-	Source         string // "douyin", "youtube", "bilibili", "yfsp" or "xhs"
+	Source         string // "douyin", "youtube", "bilibili", "yfsp", "iyf" or "xhs"
 	VideoID        string
 	Title          string
 	PlayURL        string   // single muxed/playable URL (Douyin)
@@ -43,12 +44,13 @@ type Router struct {
 	youtube  *youtube.Service
 	bilibili *bilibili.Service
 	yfsp     *yfsp.Service
+	iyf      *iyf.Service
 	xhs      *xhs.Service
 }
 
 // NewRouter wires the configured providers. Any may be nil.
-func NewRouter(dy *douyin.Service, yt *youtube.Service, bili *bilibili.Service, yf *yfsp.Service, xh *xhs.Service) *Router {
-	return &Router{douyin: dy, youtube: yt, bilibili: bili, yfsp: yf, xhs: xh}
+func NewRouter(dy *douyin.Service, yt *youtube.Service, bili *bilibili.Service, yf *yfsp.Service, iy *iyf.Service, xh *xhs.Service) *Router {
+	return &Router{douyin: dy, youtube: yt, bilibili: bili, yfsp: yf, iyf: iy, xhs: xh}
 }
 
 // Extract detects the platform from input and returns a neutral Result.
@@ -87,6 +89,18 @@ func (r *Router) Extract(input string) (Result, error) {
 		}
 		return Result{
 			Source:  "yfsp",
+			VideoID: res.ID,
+			Title:   res.Title,
+			PlayURL: res.PlayURL,
+		}, nil
+
+	case r.iyf != nil && iyf.Matches(input):
+		res, err := r.iyf.Extract(input)
+		if err != nil {
+			return Result{Source: "iyf"}, err
+		}
+		return Result{
+			Source:  "iyf",
 			VideoID: res.ID,
 			Title:   res.Title,
 			PlayURL: res.PlayURL,
