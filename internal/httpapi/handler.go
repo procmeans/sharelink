@@ -8,9 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/procmeans/sharelink/internal/bilibili"
 	"github.com/procmeans/sharelink/internal/douyin"
 	"github.com/procmeans/sharelink/internal/extract"
 	"github.com/procmeans/sharelink/internal/tiktok"
+	"github.com/procmeans/sharelink/internal/xhs"
+	"github.com/procmeans/sharelink/internal/yfsp"
+	"github.com/procmeans/sharelink/internal/youtube"
 )
 
 // ExtractFunc is the dependency injected into the handler so tests can stub
@@ -22,9 +26,14 @@ type parseRequest struct {
 }
 
 type successResponse struct {
-	Code    int               `json:"code"`
-	PlayURL string            `json:"play_url"`
-	Headers map[string]string `json:"headers,omitempty"`
+	Code     int               `json:"code"`
+	Source   string            `json:"source,omitempty"`
+	PlayURL  string            `json:"play_url,omitempty"`
+	VideoURL string            `json:"video_url,omitempty"`
+	AudioURL string            `json:"audio_url,omitempty"`
+	Images   []string          `json:"images,omitempty"`
+	Title    string            `json:"title,omitempty"`
+	Headers  map[string]string `json:"headers,omitempty"`
 }
 
 type errorResponse struct {
@@ -72,20 +81,45 @@ func parseHandler(extract ExtractFunc) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, successResponse{Code: 0, PlayURL: res.PlayURL, Headers: res.Headers})
+		writeJSON(w, http.StatusOK, successResponse{
+			Code:     0,
+			Source:   res.Source,
+			PlayURL:  res.PlayURL,
+			VideoURL: res.VideoURL,
+			AudioURL: res.AudioURL,
+			Images:   res.Images,
+			Title:    res.Title,
+			Headers:  res.Headers,
+		})
 		logRequest(req.URL, res.VideoID, res.PlayURL, "ok", 0, res.CacheHit, res.TTWidRefreshed, time.Since(start))
 	}
 }
 
 func mapError(err error) (int, int) {
 	switch {
-	case errors.Is(err, douyin.ErrNoShortURL):
+	case errors.Is(err, douyin.ErrNoShortURL),
+		errors.Is(err, youtube.ErrNoVideoURL),
+		errors.Is(err, bilibili.ErrNoVideoURL),
+		errors.Is(err, yfsp.ErrNoVideoURL),
+		errors.Is(err, xhs.ErrNoVideoURL),
+		errors.Is(err, tiktok.ErrNoURL),
+		errors.Is(err, extract.ErrUnsupportedURL):
 		return http.StatusUnprocessableEntity, 1002
 	case errors.Is(err, douyin.ErrInvalidRedirect):
 		return http.StatusUnprocessableEntity, 1003
-	case errors.Is(err, douyin.ErrUpstream), errors.Is(err, tiktok.ErrUpstream):
+	case errors.Is(err, douyin.ErrUpstream),
+		errors.Is(err, youtube.ErrUpstream),
+		errors.Is(err, bilibili.ErrUpstream),
+		errors.Is(err, yfsp.ErrUpstream),
+		errors.Is(err, xhs.ErrUpstream),
+		errors.Is(err, tiktok.ErrUpstream):
 		return http.StatusBadGateway, 2001
-	case errors.Is(err, douyin.ErrNoPlayURL), errors.Is(err, tiktok.ErrNoPlayURL):
+	case errors.Is(err, douyin.ErrNoPlayURL),
+		errors.Is(err, youtube.ErrNoStream),
+		errors.Is(err, bilibili.ErrNoStream),
+		errors.Is(err, yfsp.ErrNoStream),
+		errors.Is(err, xhs.ErrNoStream),
+		errors.Is(err, tiktok.ErrNoPlayURL):
 		return http.StatusBadGateway, 2002
 	default:
 		return http.StatusInternalServerError, 1000

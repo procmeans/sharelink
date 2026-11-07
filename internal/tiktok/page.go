@@ -50,9 +50,16 @@ type Result struct {
 	Headers map[string]string
 }
 
+// Service extracts TikTok play URLs. It is stateless: each Extract uses a
+// fresh cookie jar so the returned tt_chain_token matches the returned URL.
+type Service struct{}
+
+// NewService returns a TikTok Service.
+func NewService() *Service { return &Service{} }
+
 // Extract takes user-pasted text or a TikTok link and returns the
 // watermark-free play URL plus the headers needed to download it.
-func Extract(input string) (Result, error) {
+func (s *Service) Extract(input string) (Result, error) {
 	pageURL, err := ExtractURL(input)
 	if err != nil {
 		return Result{}, err

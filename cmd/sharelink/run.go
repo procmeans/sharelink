@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-const usage = `sharelink: extract watermark-free Douyin / TikTok video URLs
+const usage = `sharelink: extract direct video URLs from Douyin, TikTok, YouTube, Bilibili, yfsp.tv/ayf.tv, iyf.tv and Xiaohongshu
 
 Usage:
   sharelink <command> [flags]

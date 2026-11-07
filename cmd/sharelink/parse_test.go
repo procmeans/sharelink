@@ -15,11 +15,11 @@ import (
 )
 
 func stubFactory(playURL, videoID string, returnErr error) extractorFactory {
-	return stubFactoryResult(extract.Result{PlayURL: playURL, VideoID: videoID}, returnErr)
+	return stubFactoryResult(extract.Result{Source: "douyin", PlayURL: playURL, VideoID: videoID}, returnErr)
 }
 
 func stubFactoryResult(res extract.Result, returnErr error) extractorFactory {
-	return func(withTTWid bool) (func(string) (extract.Result, error), error) {
+	return func(opts extractorOpts) (func(string) (extract.Result, error), error) {
 		return func(input string) (extract.Result, error) {
 			if returnErr != nil {
 				return extract.Result{}, returnErr
@@ -114,6 +114,7 @@ func TestRunParse_UnknownFlag(t *testing.T) {
 func TestRunParse_JSONOutputIncludesHeaders(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	mk := stubFactoryResult(extract.Result{
+		Source:  "tiktok",
 		PlayURL: "https://v16.tiktok.com/v",
 		VideoID: "1",
 		Headers: map[string]string{"Referer": "https://www.tiktok.com/"},
@@ -145,6 +146,7 @@ func TestRunParse_OutputFileSendsHeaders(t *testing.T) {
 
 	out := filepath.Join(t.TempDir(), "v.mp4")
 	mk := stubFactoryResult(extract.Result{
+		Source:  "tiktok",
 		PlayURL: srv.URL + "/v",
 		Headers: map[string]string{"Cookie": "tt_chain_token=t", "Referer": "https://www.tiktok.com/"},
 	}, nil)
@@ -180,5 +182,18 @@ func TestRunParse_OutputFileDownloadFails(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "403") {
 		t.Fatalf("expected status on stderr, got: %s", stderr.String())
+	}
+}
+
+func TestRunParse_OutputFileNeedsPlayURL(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "v.mp4")
+	mk := stubFactoryResult(extract.Result{Source: "youtube", VideoURL: "https://v", AudioURL: "https://a"}, nil)
+	var stdout, stderr bytes.Buffer
+	code := runParse([]string{"-o", out, "https://youtu.be/x"}, strings.NewReader(""), &stdout, &stderr, mk)
+	if code != 1 {
+		t.Fatalf("want exit 1, got %d", code)
+	}
+	if !strings.Contains(stderr.String(), "-o needs a single play URL") {
+		t.Fatalf("unexpected stderr: %s", stderr.String())
 	}
 }

@@ -132,61 +132,6 @@ func TestParseHandler_Success(t *testing.T) {
 	if got["play_url"] != "https://cdn.example.com/play/v.mp4" {
 		t.Fatalf("unexpected play_url: %v", got["play_url"])
 	}
-	if _, ok := got["headers"]; ok {
-		t.Fatalf("douyin response should omit headers, got %v", got["headers"])
-	}
-}
-
-func TestParseHandler_TikTokSuccessIncludesHeaders(t *testing.T) {
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/parse",
-		strings.NewReader(`{"url":"https://www.tiktok.com/@u/video/1"}`))
-	req.Header.Set("Content-Type", "application/json")
-
-	stub := func(string) (extract.Result, error) {
-		return extract.Result{
-			PlayURL: "https://v16.tiktok.com/v",
-			Headers: map[string]string{"Cookie": "tt_chain_token=t", "Referer": "https://www.tiktok.com/"},
-		}, nil
-	}
-	NewHandler(stub).ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("want 200, got %d", rec.Code)
-	}
-	var got struct {
-		PlayURL string            `json:"play_url"`
-		Headers map[string]string `json:"headers"`
-	}
-	mustDecode(t, rec.Body, &got)
-	if got.PlayURL != "https://v16.tiktok.com/v" || got.Headers["Cookie"] != "tt_chain_token=t" {
-		t.Fatalf("unexpected body: %+v", got)
-	}
-}
-
-func TestParseHandler_TikTokErrors(t *testing.T) {
-	cases := []struct {
-		err        error
-		wantStatus int
-		wantCode   int
-	}{
-		{tiktok.ErrUpstream, http.StatusBadGateway, 2001},
-		{tiktok.ErrNoPlayURL, http.StatusBadGateway, 2002},
-	}
-	for _, tc := range cases {
-		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/parse",
-			strings.NewReader(`{"url":"https://www.tiktok.com/@u/video/1"}`))
-		NewHandler(stubExtract("", tc.err)).ServeHTTP(rec, req)
-		if rec.Code != tc.wantStatus {
-			t.Fatalf("%v: want %d, got %d", tc.err, tc.wantStatus, rec.Code)
-		}
-		var got map[string]any
-		mustDecode(t, rec.Body, &got)
-		if int(got["code"].(float64)) != tc.wantCode {
-			t.Fatalf("%v: want code %d, got %v", tc.err, tc.wantCode, got["code"])
-		}
-	}
 }
 
 func TestParseHandler_MethodNotAllowed(t *testing.T) {
@@ -224,7 +169,7 @@ func stubExtract(playURL string, err error) ExtractFunc {
 		if err != nil {
 			return extract.Result{}, err
 		}
-		return extract.Result{PlayURL: playURL}, nil
+		return extract.Result{Source: "douyin", PlayURL: playURL}, nil
 	}
 }
 
@@ -232,5 +177,59 @@ func mustDecode(t *testing.T, r io.Reader, v any) {
 	t.Helper()
 	if err := json.NewDecoder(r).Decode(v); err != nil {
 		t.Fatalf("decode response: %v", err)
+	}
+}
+
+func TestParseHandler_TikTokSuccessIncludesHeaders(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/parse",
+		strings.NewReader(`{"url":"https://www.tiktok.com/@u/video/1"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	stub := func(string) (extract.Result, error) {
+		return extract.Result{
+			Source:  "tiktok",
+			PlayURL: "https://v16.tiktok.com/v",
+			Headers: map[string]string{"Cookie": "tt_chain_token=t", "Referer": "https://www.tiktok.com/"},
+		}, nil
+	}
+	NewHandler(stub).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rec.Code)
+	}
+	var got struct {
+		PlayURL string            `json:"play_url"`
+		Headers map[string]string `json:"headers"`
+	}
+	mustDecode(t, rec.Body, &got)
+	if got.PlayURL != "https://v16.tiktok.com/v" || got.Headers["Cookie"] != "tt_chain_token=t" {
+		t.Fatalf("unexpected body: %+v", got)
+	}
+}
+
+func TestParseHandler_TikTokErrors(t *testing.T) {
+	cases := []struct {
+		err        error
+		wantStatus int
+		wantCode   int
+	}{
+		{tiktok.ErrNoURL, http.StatusUnprocessableEntity, 1002},
+		{tiktok.ErrUpstream, http.StatusBadGateway, 2001},
+		{tiktok.ErrNoPlayURL, http.StatusBadGateway, 2002},
+	}
+	for _, tc := range cases {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/parse",
+			strings.NewReader(`{"url":"https://www.tiktok.com/@u/video/1"}`))
+		NewHandler(stubExtract("", tc.err)).ServeHTTP(rec, req)
+		if rec.Code != tc.wantStatus {
+			t.Fatalf("%v: want %d, got %d", tc.err, tc.wantStatus, rec.Code)
+		}
+		var got map[string]any
+		mustDecode(t, rec.Body, &got)
+		if int(got["code"].(float64)) != tc.wantCode {
+			t.Fatalf("%v: want code %d, got %v", tc.err, tc.wantCode, got["code"])
+		}
 	}
 }

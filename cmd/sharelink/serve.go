@@ -9,12 +9,17 @@ import (
 	"os"
 	"time"
 
+	"github.com/procmeans/sharelink/internal/bilibili"
 	"github.com/procmeans/sharelink/internal/cache"
 	"github.com/procmeans/sharelink/internal/douyin"
 	"github.com/procmeans/sharelink/internal/extract"
 	"github.com/procmeans/sharelink/internal/httpapi"
 	"github.com/procmeans/sharelink/internal/httpclient"
+	"github.com/procmeans/sharelink/internal/iyf"
 	"github.com/procmeans/sharelink/internal/tiktok"
+	"github.com/procmeans/sharelink/internal/xhs"
+	"github.com/procmeans/sharelink/internal/yfsp"
+	"github.com/procmeans/sharelink/internal/youtube"
 )
 
 func runServe(args []string, stderr io.Writer) int {
@@ -35,7 +40,7 @@ func runServe(args []string, stderr io.Writer) int {
 	slog.Info("ttwid acquired", "len", len(ttwid.Cookie()))
 
 	c := cache.New(1000, 30*time.Minute)
-	router := extract.Router{Douyin: douyin.NewService(ttwid, c).Extract, TikTok: tiktok.Extract}
+	router := extract.NewRouter(douyin.NewService(ttwid, c), youtube.NewService(youtube.Muxed), bilibili.NewService(), yfsp.NewService(), iyf.NewService(), xhs.NewService(), tiktok.NewService())
 
 	port := *portFlag
 	if port == "" {
