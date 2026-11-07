@@ -9,19 +9,22 @@ import (
 	"time"
 
 	"github.com/procmeans/sharelink/internal/douyin"
+	"github.com/procmeans/sharelink/internal/extract"
+	"github.com/procmeans/sharelink/internal/tiktok"
 )
 
 // ExtractFunc is the dependency injected into the handler so tests can stub
 // the extraction logic without touching the real implementation.
-type ExtractFunc func(input string) (douyin.Result, error)
+type ExtractFunc func(input string) (extract.Result, error)
 
 type parseRequest struct {
 	URL string `json:"url"`
 }
 
 type successResponse struct {
-	Code    int    `json:"code"`
-	PlayURL string `json:"play_url"`
+	Code    int               `json:"code"`
+	PlayURL string            `json:"play_url"`
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 type errorResponse struct {
@@ -69,7 +72,7 @@ func parseHandler(extract ExtractFunc) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, successResponse{Code: 0, PlayURL: res.PlayURL})
+		writeJSON(w, http.StatusOK, successResponse{Code: 0, PlayURL: res.PlayURL, Headers: res.Headers})
 		logRequest(req.URL, res.VideoID, res.PlayURL, "ok", 0, res.CacheHit, res.TTWidRefreshed, time.Since(start))
 	}
 }
@@ -80,9 +83,9 @@ func mapError(err error) (int, int) {
 		return http.StatusUnprocessableEntity, 1002
 	case errors.Is(err, douyin.ErrInvalidRedirect):
 		return http.StatusUnprocessableEntity, 1003
-	case errors.Is(err, douyin.ErrUpstream):
+	case errors.Is(err, douyin.ErrUpstream), errors.Is(err, tiktok.ErrUpstream):
 		return http.StatusBadGateway, 2001
-	case errors.Is(err, douyin.ErrNoPlayURL):
+	case errors.Is(err, douyin.ErrNoPlayURL), errors.Is(err, tiktok.ErrNoPlayURL):
 		return http.StatusBadGateway, 2002
 	default:
 		return http.StatusInternalServerError, 1000
